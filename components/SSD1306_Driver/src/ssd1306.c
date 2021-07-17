@@ -22,7 +22,6 @@
  */
 #include "ssd1306.h"
 
-extern I2C_HandleTypeDef hi2c1;
 /* Write command */
 #define SSD1306_WRITECOMMAND(command)      ssd1306_I2C_Write(SSD1306_I2C_ADDR, 0x00, (command))
 /* Write data */
@@ -149,29 +148,18 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
             {
                byte = (*(const unsigned char *)(&bitmap[j * byteWidth + i / 8]));
             }
-            if((byte&0x80) == 1) SSD1306_DrawPixel(x+i, y, (SSD1306_COLOR_t)color);
+			uint8_t tmp = byte&0x80;
+            if( tmp == 1) SSD1306_DrawPixel(x+i, y, (SSD1306_COLOR_t)color);
         }
     }
 }
-
-
-
-
-
-
 
 
 uint8_t SSD1306_Init(void) {
 
 	/* Init I2C */
 	ssd1306_I2C_Init();
-	
-	/* Check if LCD connected to I2C */
-	if (HAL_I2C_IsDeviceReady(&hi2c1, SSD1306_I2C_ADDR, 1, 20000) != HAL_OK) {
-		/* Return false */
-		return 0;
-	}
-	
+
 	/* A little delay */
 	uint32_t p = 2500;
 	while(p>0)
@@ -627,32 +615,64 @@ void SSD1306_OFF(void) {
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+i2c_config_t i2c_conf = {
+    .mode = I2C_MODE_MASTER,
+    .sda_io_num = I2C_MASTER_SDA_IO,         // select GPIO specific to your project
+    .sda_pullup_en = GPIO_PULLUP_DISABLE,
+    .scl_io_num = I2C_MASTER_SCL_IO,         // select GPIO specific to your project
+    .scl_pullup_en = GPIO_PULLUP_DISABLE,
+    .master.clk_speed = I2C_MASTER_FREQ_HZ  // select frequency specific to your project
+    // .clk_flags = 0,          /*!< Optional, you can use I2C_SCLK_SRC_FLAG_* flags to choose i2c source clock here. */
+};
+int i2c_master_port = 0;
+
 void ssd1306_I2C_Init() {
-	//MX_I2C1_Init();
-	uint32_t p = 250000;
-	while(p>0)
-		p--;
-	//HAL_I2C_DeInit(&hi2c1);
-	//p = 250000;
-	//while(p>0)
-	//	p--;
-	//MX_I2C1_Init();
+	esp_err_t i2c_err;
+    i2c_err = i2c_param_config(i2c_master_port,&i2c_conf);
+    if(i2c_err != ESP_OK) printf(" parameter config error code: %d \r\n",i2c_err);
+    i2c_err = i2c_driver_install(i2c_master_port,I2C_MODE_MASTER, 0,0, 0);
+    if(i2c_err != ESP_OK) printf(" driver install error code: %d \r\n ",i2c_err);   
 }
 
 void ssd1306_I2C_WriteMulti(uint8_t address, uint8_t reg, uint8_t* data, uint16_t count) {
-	uint8_t dt[256];
-	dt[0] = reg;
-	uint8_t i;
-	for(i = 0; i < count; i++)
-	dt[i+1] = data[i];
-	HAL_I2C_Master_Transmit(&hi2c1, address, dt, count+1, 10);
+	// uint8_t dt[256];
+	// dt[0] = reg;
+	// uint8_t i;
+	// for(i = 0; i < count; i++)
+	// dt[i+1] = data[i];
+	// HAL_I2C_Master_Transmit(&hi2c1, address, dt, count+1, 10);
+	
+	i2c_cmd_handle_t cmd;
+    cmd = i2c_cmd_link_create(); 
+
+    i2c_master_start(cmd); //start I2C transaction
+    i2c_master_write_byte(cmd,address , true); //send Address with write Bit
+    i2c_master_write_byte(cmd,reg,1); //Send Register Address
+	//printf("length of tx data %d || Count in function %d \n ", sizeof(data), count);
+    
+	i2c_master_write(cmd, data,count,true);
+    i2c_master_stop(cmd);
+
+    i2c_master_cmd_begin(i2c_master_port,cmd, 50);
+    i2c_cmd_link_delete(cmd);
 }
 
-
-
 void ssd1306_I2C_Write(uint8_t address, uint8_t reg, uint8_t data) {
-	uint8_t dt[2];
-	dt[0] = reg;
-	dt[1] = data;
-	HAL_I2C_Master_Transmit(&hi2c1, address, dt, 2, 10);
+	// uint8_t dt[2];
+	// dt[0] = reg;
+	// dt[1] = data;
+	// HAL_I2C_Master_Transmit(&hi2c1, address, dt, 2, 10);
+
+	i2c_cmd_handle_t cmd;
+    cmd = i2c_cmd_link_create(); 
+
+    i2c_master_start(cmd); //start I2C transaction
+    i2c_master_write_byte(cmd,address, true); //send Address with write Bit
+    i2c_master_write_byte(cmd,reg,1); //Send Register Address
+
+	i2c_master_write(cmd, &data, 1 ,true);
+    i2c_master_stop(cmd);
+
+    i2c_master_cmd_begin(i2c_master_port,cmd, 50);
+    i2c_cmd_link_delete(cmd);
 }

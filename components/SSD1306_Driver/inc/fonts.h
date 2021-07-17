@@ -38,9 +38,8 @@ extern C {
  *  - 11 x 18 pixels
  *  - 16 x 26 pixels
  */
-#include "stm32l0xx_hal.h"
 #include "string.h"
-
+#include "stdint.h"
 /**
  * @defgroup LIB_Typedefs
  * @brief    Library Typedefs

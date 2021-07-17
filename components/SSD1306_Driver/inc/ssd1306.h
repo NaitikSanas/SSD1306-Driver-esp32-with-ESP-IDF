@@ -45,17 +45,18 @@ SCL        |PB6          |Serial clock line
 SDA        |PB7          |Serial data line
  */
 
-#include "stm32l0xx_hal.h"
-
 #include "fonts.h"
-
 #include "stdlib.h"
 #include "string.h"
-
+#include "driver/i2c.h"
 
 /* I2C address */
+#define I2C_MASTER_SDA_IO 21
+#define I2C_MASTER_SCL_IO 22
+#define I2C_MASTER_FREQ_HZ 100000
 
 #define SSD1306_I2C_ADDR         0x78
+
 //#define SSD1306_I2C_ADDR       0x7A
 
 /* SSD1306 settings */
@@ -234,7 +235,7 @@ void SSD1306_DrawFilledCircle(int16_t x0, int16_t y0, int16_t r, SSD1306_COLOR_t
  *           - 0: LCD was not detected on I2C port
  *           - > 0: LCD initialized OK and ready to use
  */
-static void ssd1306_I2C_Init(void);
+void ssd1306_I2C_Init(void);
 
 /**
  * @brief  Writes single byte to slave
