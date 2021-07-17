@@ -9,7 +9,7 @@
 #include "fonts.h"
 
 int i = 0;
-
+void task ();
 void app_main(){
     SSD1306_Init();
     printf("SSD1306 Initialized..\n");
@@ -20,8 +20,14 @@ void app_main(){
     SSD1306_Puts(str, &Font_7x10, 1);
     printf("printed text\n");
     SSD1306_UpdateScreen();
-    vTaskDelay(100);
+    vTaskDelay(1);
     SSD1306_GotoXY(10,10);
+    
+    xTaskCreate(&task, "oled_display", 2046, NULL, 5, NULL);
+}
+
+void task (){
+    char str [16];
     while (1)
     {
         SSD1306_GotoXY(10,10);
@@ -31,6 +37,5 @@ void app_main(){
         SSD1306_Puts(str,&Font_11x18,1);
         i = i + 1;
         SSD1306_UpdateScreen();
-    }
-    
+    }  
 }
